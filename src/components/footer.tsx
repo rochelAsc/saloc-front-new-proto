@@ -19,7 +19,7 @@ export function Footer() {
               <h3 className="text-lg font-bold uppercase tracking-wide">SALOC</h3>
             </div>
             <p className="text-sm text-white/70 leading-relaxed">
-              Sistema de Alocação de Salas desenvolvido para otimizar e automatizar a distribuição de turmas no CCET/UFMA.
+              Sistema de Alocação de Salas desenvolvido para otimizar e automatizar a distribuição de turmas na UFMA.
             </p>
           </div>
 
@@ -80,10 +80,10 @@ export function Footer() {
         {/* Copyright e créditos */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-white/50">
           <p>
-            © {currentYear} SALOC - Sistema de Alocação de Salas. Todos os direitos reservados.
+            © {currentYear} Agência de Tecnologia da Informação. Todos os direitos reservados.
           </p>
           <p className="flex items-center gap-1">
-            Desenvolvido pelo NCA/UFMA
+            Desenvolvido por NCA/UFMA
           </p>
         </div>
       </div>

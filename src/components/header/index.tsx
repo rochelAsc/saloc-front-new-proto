@@ -3,25 +3,20 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Home, LogIn, LogOut, ArrowLeft, Menu, X, User, Building2 } from 'lucide-react'
-import { signOut, useSession } from 'next-auth/react'
-
-function LetterSpan({ letter }: { letter: string }) {
-  return (
-    <span className="bg-white h-8 w-8 md:h-10 md:w-10 text-saloc rounded-lg flex items-center justify-center text-lg md:text-xl font-bold shadow-sm">
-      {letter}
-    </span>
-  )
-}
+import { Home, LogIn, LogOut, ArrowLeft, Menu, X, User } from 'lucide-react'
 
 export function Header() {
   const router = useRouter()
   const pathname = usePathname()
-  const { data: session } = useSession()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isInternalNavigation, setIsInternalNavigation] = useState(true)
+  const [imgError, setImgError] = useState(false)
 
-  const isLoggedIn = !!session?.user
+  // Mock de autenticação (sempre logado para o protótipo)
+  const [isLoggedIn, setIsLoggedIn] = useState(true)
+  const [userName] = useState("Usuário Teste")
+  const [isAdmin] = useState(true)
+
   const isLoginPage = pathname !== '/login' && pathname !== '/'
 
   useEffect(() => {
@@ -37,45 +32,48 @@ export function Header() {
     }
   }
 
-  const handleLogout = async () => {
-    await signOut({ redirect: false })
-    window.location.reload()
-    router.push('/login')
+  const handleLogout = () => {
+    setIsLoggedIn(false)
+    router.push('/login-page')
   }
 
-  // Fechar menu ao mudar de página
   useEffect(() => {
     setIsMobileMenuOpen(false)
   }, [pathname])
-
-  // Mock session para teste (remover quando conectar com auth real)
-  const mockSession = {
-    user: {
-      name: "Usuário Teste",
-      email: "usuario@saloc.com",
-      isAdmin: true
-    }
-  }
-  const effectiveSession = session || (process.env.NODE_ENV === 'development' ? mockSession : null)
-  const effectiveIsLoggedIn = isLoggedIn || !!effectiveSession
 
   return (
     <header className="bg-saloc text-white shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-3 md:py-4">
           
-          {/* Logo - Desktop */}
-          <Link href="/home" className="flex items-center gap-3 group">
-            <div className="flex gap-1">
-              <LetterSpan letter="s" />
-              <LetterSpan letter="a" />
-              <LetterSpan letter="l" />
-              <LetterSpan letter="o" />
-              <LetterSpan letter="c" />
+          {/* Logo e Nome da Instituição */}
+          <Link href="/" className="flex items-center gap-3 group">
+            {/* Logo UFMA */}
+            <div className="relative w-12 h-12 md:w-16 md:h-16 flex items-center justify-center">
+              {!imgError ? (
+                <img
+                  src="/images/ufma-logo.svg"
+                  alt="UFMA Logo"
+                  className="w-full h-full object-contain"
+                  onError={() => setImgError(true)}
+                />
+              ) : (
+                <span className="text-white font-bold text-xs md:text-sm text-center leading-tight">
+                  UFMA
+                </span>
+              )}
             </div>
+            
+            {/* Texto institucional - Desktop */}
             <div className="hidden md:block">
-              <p className="text-sm font-bold uppercase tracking-wide">Sistema de Alocação de Salas</p>
-              <p className="text-xs text-saloc-pastel">CCET - Centro de Ciências Exatas e Tecnologias</p>
+              <p className="text-sm font-bold uppercase tracking-wide">UNIVERSIDADE FEDERAL DO MARANHÃO</p>
+              <p className="text-xs text-saloc-pastel">Sistema de Alocação de Salas - CCET</p>
+            </div>
+            
+            {/* Versão mobile - texto menor */}
+            <div className="md:hidden">
+              <p className="text-xs font-bold uppercase tracking-wide leading-tight">UFMA</p>
+              <p className="text-[10px] text-saloc-pastel leading-tight">SALOC</p>
             </div>
           </Link>
 
@@ -100,11 +98,11 @@ export function Header() {
             
             <div className="w-px h-6 bg-white/20 mx-1" />
             
-            {effectiveIsLoggedIn ? (
+            {isLoggedIn ? (
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg">
                   <User className="h-4 w-4" />
-                  <span className="text-sm font-medium">{effectiveSession?.user?.name || 'Usuário'}</span>
+                  <span className="text-sm font-medium">{userName}</span>
                 </div>
                 <button
                   onClick={handleLogout}
@@ -158,11 +156,11 @@ export function Header() {
               </div>
 
               {/* Informações do usuário (se logado) */}
-              {effectiveIsLoggedIn && (
+              {isLoggedIn && (
                 <div className="py-3 px-2 bg-white/5 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <User className="h-4 w-4 text-white/60" />
-                    <span className="text-sm font-medium">{effectiveSession?.user?.name || 'Usuário'}</span>
+                    <span className="text-sm font-medium">{userName}</span>
                   </div>
                   <button
                     onClick={() => { handleLogout(); setIsMobileMenuOpen(false) }}
@@ -174,7 +172,7 @@ export function Header() {
               )}
 
               {/* Login (se não logado) */}
-              {!effectiveIsLoggedIn && (
+              {!isLoggedIn && (
                 <Link
                   href="/login"
                   onClick={() => setIsMobileMenuOpen(false)}

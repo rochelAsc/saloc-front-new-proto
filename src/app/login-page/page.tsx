@@ -52,16 +52,6 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-gray-50 font-sans flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
-        
-        {/* Logo e título */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-saloc rounded-2xl mb-4 shadow-lg">
-            <span className="text-white text-3xl font-bold">S</span>
-          </div>
-          <h1 className="text-2xl font-bold text-saloc">SALOC</h1>
-          <p className="text-text-secondary text-sm mt-1">Sistema de Alocação de Salas</p>
-          <p className="text-text-secondary text-xs mt-4">CCET - Centro de Ciências Exatas e Tecnologias</p>
-        </div>
 
         {/* Card de login */}
         {!isRecoverMode ? (
@@ -136,16 +126,6 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Dicas de teste (mock) */}
-            <div className="mt-6 pt-4 border-t border-gray-200">
-              <p className="text-xs text-text-secondary text-center">
-                Credenciais para teste:
-              </p>
-              <div className="mt-2 text-xs text-text-secondary text-center space-y-1">
-                <p>Admin: admin@saloc.com / admin123</p>
-                <p>Coord: coord@saloc.com / coord123</p>
-              </div>
-            </div>
           </div>
         ) : (
           /* Card de recuperação de senha */

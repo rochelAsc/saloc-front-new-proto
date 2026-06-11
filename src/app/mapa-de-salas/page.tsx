@@ -1,28 +1,37 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Download, Building2, Users, Calendar } from 'lucide-react'
+import { Search, Download, Building2, Users, Calendar, BookOpen } from 'lucide-react'
 
 // Mock data para teste
 const MOCK_ROOMS = [
-  { id: 1, name: "Sala 101 - CCET" },
-  { id: 2, name: "Sala 102 - CCET" },
-  { id: 3, name: "Lab 01 - CCET" },
-  { id: 4, name: "Lab 02 - CCET" },
+  { id: 1, name: "Sala 101 - CCET", building: "CCET", block: "A", capacity: 50, floor: "Térreo" },
+  { id: 2, name: "Sala 102 - CCET", building: "CCET", block: "A", capacity: 40, floor: "Térreo" },
+  { id: 3, name: "Lab 01 - CCET", building: "CCET", block: "B", capacity: 30, floor: "1º Andar" },
+  { id: 4, name: "Lab 02 - CCET", building: "CCET", block: "B", capacity: 30, floor: "1º Andar" },
 ]
 
-const MOCK_PERIODS = [
-  { id: 1, period: "2024.1" },
-  { id: 2, period: "2024.2" },
-  { id: 3, period: "2025.1" },
+// Período fixo (sempre o mais atual)
+const CURRENT_PERIOD = "2026.2"
+
+// Cursos para filtro
+const MOCK_COURSES = [
+  { id: 1, name: "Ciência da Computação" },
+  { id: 2, name: "Engenharia de Computação" },
+  { id: 3, name: "Sistemas de Informação" },
 ]
 
-// Mock de alocações para o mapa
+// Mock de alocações para o mapa (com curso associado)
 const MOCK_ALLOCATIONS = [
-  { room: { id: 1, number: "101", building: "CCET", block: "A", capacity: 50, floor: "Térreo" }, name: "Algoritmos", schedule: "24M12" },
-  { room: { id: 1, number: "101", building: "CCET", block: "A", capacity: 50, floor: "Térreo" }, name: "Estrutura de Dados", schedule: "35T34" },
-  { room: { id: 2, number: "102", building: "CCET", block: "A", capacity: 40, floor: "Térreo" }, name: "Cálculo I", schedule: "24M12" },
-  { room: { id: 3, number: "Lab 01", building: "CCET", block: "B", capacity: 30, floor: "1º" }, name: "Programação", schedule: "4M12" },
+  { roomId: 1, name: "Algoritmos", schedule: "24M12", course: "Ciência da Computação" },
+  { roomId: 1, name: "Estrutura de Dados", schedule: "35T34", course: "Ciência da Computação" },
+  { roomId: 2, name: "Cálculo I", schedule: "24M12", course: "Engenharia de Computação" },
+  { roomId: 2, name: "Circuitos Digitais", schedule: "35T34", course: "Engenharia de Computação" },
+  { roomId: 3, name: "Programação", schedule: "4M12", course: "Ciência da Computação" },
+  { roomId: 3, name: "Sistemas Embarcados", schedule: "2T34", course: "Engenharia de Computação" },
+  { roomId: 4, name: "Banco de Dados", schedule: "5M12", course: "Ciência da Computação" },
+  { roomId: 4, name: "Gestão de Projetos", schedule: "3T12", course: "Sistemas de Informação" },
+  { roomId: 4, name: "Análise de Sistemas", schedule: "4M12", course: "Sistemas de Informação" },
 ]
 
 function Badge({ children, variant = "default" }: { children: React.ReactNode; variant?: "default" | "success" | "warning" | "danger" | "info" }) {
@@ -53,8 +62,12 @@ function parseSchedule(schedule: string) {
   return results
 }
 
-function findDiscipline(allocation: any[], day: string, timeSlot: string, shift: string) {
+function findDiscipline(allocation: any[], day: string, timeSlot: string, shift: string, courseFilter: string | null) {
   for (const item of allocation) {
+    // Aplicar filtro de curso se selecionado
+    if (courseFilter && courseFilter !== "todos" && item.course !== courseFilter) {
+      continue
+    }
     const schedule = item.schedule
     const results = parseSchedule(schedule)
     for (const result of results) {
@@ -72,7 +85,7 @@ function findDiscipline(allocation: any[], day: string, timeSlot: string, shift:
 
 export default function MapaSalas() {
   const [roomId, setRoomId] = useState<number | null>(null)
-  const [periodId, setPeriodId] = useState<number | null>(null)
+  const [courseFilter, setCourseFilter] = useState<string>("todos")
   const [isLoading, setIsLoading] = useState(false)
   const [tableData, setTableData] = useState<any[]>([])
   const [selectedRoom, setSelectedRoom] = useState<any>(null)
@@ -101,13 +114,15 @@ export default function MapaSalas() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!roomId || !periodId) return
+    if (!roomId) return
 
     setIsLoading(true)
     setTimeout(() => {
       const room = MOCK_ROOMS.find(r => r.id === roomId)
       setSelectedRoom(room)
-      setTableData(MOCK_ALLOCATIONS)
+      // Filtrar alocações pela sala selecionada
+      const filteredAllocations = MOCK_ALLOCATIONS.filter(a => a.roomId === roomId)
+      setTableData(filteredAllocations)
       setIsLoading(false)
     }, 500)
   }
@@ -117,8 +132,15 @@ export default function MapaSalas() {
     alert('Funcionalidade de relatório será implementada em breve')
   }
 
-  // Mock de autenticação
-  const isAuthenticated = true
+  // Filtrar disciplinas mostradas na tabela baseado no curso selecionado
+  const getFilteredData = () => {
+    if (courseFilter === "todos") {
+      return tableData
+    }
+    return tableData.filter(item => item.course === courseFilter)
+  }
+
+  const filteredData = getFilteredData()
 
   return (
     <main className="min-h-screen bg-white font-sans text-text-primary">
@@ -128,6 +150,7 @@ export default function MapaSalas() {
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-saloc">Mapa de Sala</h1>
           <p className="text-text-secondary mt-1">Visualize a ocupação das salas por horário e dia da semana</p>
+          <p className="text-text-secondary text-sm mt-1">Período: <span className="font-semibold text-saloc">{CURRENT_PERIOD}</span></p>
         </div>
 
         {/* Card de filtros */}
@@ -153,21 +176,24 @@ export default function MapaSalas() {
               </div>
 
               <div className="flex flex-col">
-                <label htmlFor="periodo" className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-1">
-                  Período <span className="text-danger">*</span>
+                <label htmlFor="curso" className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-1">
+                  Curso (opcional)
                 </label>
-                <select
-                  id="periodo"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-focus"
-                  value={periodId || ''}
-                  onChange={(e) => setPeriodId(Number(e.target.value))}
-                  required
-                >
-                  <option value="" disabled>Selecione o período</option>
-                  {MOCK_PERIODS.map((period) => (
-                    <option key={period.id} value={period.id}>{period.period}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary/50" />
+                  <select
+                    id="curso"
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-focus"
+                    value={courseFilter}
+                    onChange={(e) => setCourseFilter(e.target.value)}
+                  >
+                    <option value="todos">Todos os cursos</option>
+                    {MOCK_COURSES.map((course) => (
+                      <option key={course.id} value={course.name}>{course.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <p className="text-xs text-text-secondary mt-1">Filtra as disciplinas exibidas na matriz</p>
               </div>
 
               <div className="flex items-end">
@@ -196,21 +222,21 @@ export default function MapaSalas() {
                 <Building2 className="h-4 w-4" />
                 Bloco
               </div>
-              <div className="text-xl font-bold text-saloc">{selectedRoom.name.split(' - ')[0]}</div>
+              <div className="text-xl font-bold text-saloc">{selectedRoom.block || 'N/A'}</div>
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <div className="flex items-center gap-2 text-text-secondary text-xs uppercase font-semibold mb-2">
                 <Building2 className="h-4 w-4" />
                 Andar / Piso
               </div>
-              <div className="text-xl font-bold text-saloc">Térreo</div>
+              <div className="text-xl font-bold text-saloc">{selectedRoom.floor || 'N/A'}</div>
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <div className="flex items-center gap-2 text-text-secondary text-xs uppercase font-semibold mb-2">
                 <Users className="h-4 w-4" />
                 Capacidade
               </div>
-              <div className="text-xl font-bold text-saloc">50 discentes</div>
+              <div className="text-xl font-bold text-saloc">{selectedRoom.capacity || 0} discentes</div>
             </div>
           </div>
         )}
@@ -219,52 +245,65 @@ export default function MapaSalas() {
         {tableData.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
             <Calendar className="h-12 w-12 text-text-secondary/30 mx-auto mb-4" />
-            <p className="text-text-secondary">Selecione uma sala e um período para visualizar o mapa de ocupação.</p>
+            <p className="text-text-secondary">Selecione uma sala para visualizar o mapa de ocupação.</p>
+            <p className="text-text-secondary text-sm mt-1">Período atual: {CURRENT_PERIOD}</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-saloc text-white">
-                  <tr>
-                    <th className="p-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Horário</th>
-                    {dias.map((dia, idx) => (
-                      <th key={idx} className="p-3 text-left text-xs font-semibold uppercase whitespace-nowrap">
-                        {dia}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {horarios.map((horario, idx) => {
-                    const timeRange = `${horario.start} - ${horario.end}`
-                    return (
-                      <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
-                        <td className="p-3 font-mono text-xs whitespace-nowrap">{timeRange}</td>
-                        {dias.map((_, diaIdx) => {
-                          const disciplina = findDiscipline(
-                            tableData,
-                            dayNumbers[diaIdx],
-                            horario.slot,
-                            horario.turno
-                          )
-                          return (
-                            <td key={diaIdx} className="p-3">
-                              {disciplina ? (
-                                <Badge variant="info">{disciplina}</Badge>
-                              ) : (
-                                <span className="text-text-secondary/40 text-xs">—</span>
-                              )}
-                            </td>
-                          )
-                        })}
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+          <>
+            {/* Indicador de filtro ativo */}
+            {courseFilter !== "todos" && (
+              <div className="mb-4 flex justify-end">
+                <Badge variant="info">
+                  Filtrando por: {courseFilter}
+                </Badge>
+              </div>
+            )}
+            
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-saloc text-white">
+                    <tr>
+                      <th className="p-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Horário</th>
+                      {dias.map((dia, idx) => (
+                        <th key={idx} className="p-3 text-left text-xs font-semibold uppercase whitespace-nowrap">
+                          {dia}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {horarios.map((horario, idx) => {
+                      const timeRange = `${horario.start} - ${horario.end}`
+                      return (
+                        <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
+                          <td className="p-3 font-mono text-xs whitespace-nowrap">{timeRange}</td>
+                          {dias.map((_, diaIdx) => {
+                            const disciplina = findDiscipline(
+                              filteredData,
+                              dayNumbers[diaIdx],
+                              horario.slot,
+                              horario.turno,
+                              courseFilter !== "todos" ? courseFilter : null
+                            )
+                            return (
+                              <td key={diaIdx} className="p-3">
+                                {disciplina ? (
+                                  <Badge variant="info">{disciplina}</Badge>
+                                ) : (
+                                  <span className="text-text-secondary/40 text-xs">—</span>
+                                )}
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         {/* Botão de relatório (apenas quando há dados) */}

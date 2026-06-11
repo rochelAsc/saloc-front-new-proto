@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { 
   BookOpen, Calendar, Users, Hash, User, 
   Building2, CheckCircle, AlertCircle, X,
-  Plus, Trash2
+  Plus, Trash2, Search, Filter
 } from 'lucide-react'
 
 // Mock data
@@ -20,12 +20,23 @@ const MOCK_PERIODS = [
   { id: 3, label: "2025.1" },
 ]
 
+// Departamentos/Coordenações
+const MOCK_DEPARTMENTS = [
+  { id: 1, name: "DCOMP - Departamento de Computação" },
+  { id: 2, name: "DMAT - Departamento de Matemática" },
+  { id: 3, name: "DFIS - Departamento de Física" },
+  { id: 4, name: "DEEL - Departamento de Engenharia Elétrica" },
+]
+
+// Professores com departamento associado
 const MOCK_TEACHERS = [
-  { id: 1, name: "Prof. João Silva" },
-  { id: 2, name: "Prof.ª Maria Souza" },
-  { id: 3, name: "Prof. Carlos Lima" },
-  { id: 4, name: "Prof. Ana Costa" },
-  { id: 5, name: "Prof. Roberto Santos" },
+  { id: 1, name: "Prof. João Silva", departmentId: 1, department: "DCOMP - Departamento de Computação" },
+  { id: 2, name: "Prof.ª Maria Souza", departmentId: 2, department: "DMAT - Departamento de Matemática" },
+  { id: 3, name: "Prof. Carlos Lima", departmentId: 1, department: "DCOMP - Departamento de Computação" },
+  { id: 4, name: "Prof. Ana Costa", departmentId: 3, department: "DFIS - Departamento de Física" },
+  { id: 5, name: "Prof. Roberto Santos", departmentId: 4, department: "DEEL - Departamento de Engenharia Elétrica" },
+  { id: 6, name: "Prof. Patricia Oliveira", departmentId: 1, department: "DCOMP - Departamento de Computação" },
+  { id: 7, name: "Prof. Ricardo Alves", departmentId: 2, department: "DMAT - Departamento de Matemática" },
 ]
 
 const MOCK_DISCIPLINES = [
@@ -56,6 +67,10 @@ export default function RegistrarTurma() {
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
   const [showNewDiscipline, setShowNewDiscipline] = useState(false)
   
+  // Filtro de professores
+  const [departmentFilter, setDepartmentFilter] = useState<string>("todos")
+  const [teacherSearch, setTeacherSearch] = useState("")
+  
   // Form state
   const [formData, setFormData] = useState({
     course: '',
@@ -83,6 +98,13 @@ export default function RegistrarTurma() {
     }
   }, [message])
 
+  // Filtrar professores por departamento e busca
+  const filteredTeachers = MOCK_TEACHERS.filter(teacher => {
+    const matchesDepartment = departmentFilter === "todos" || teacher.departmentId.toString() === departmentFilter
+    const matchesSearch = teacher.name.toLowerCase().includes(teacherSearch.toLowerCase())
+    return matchesDepartment && matchesSearch
+  })
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
@@ -97,6 +119,17 @@ export default function RegistrarTurma() {
         ? prev.teachers.filter(id => id !== teacherId)
         : [...prev.teachers, teacherId]
     }))
+  }
+
+  const handleSelectAllTeachers = () => {
+    if (formData.teachers.length === filteredTeachers.length) {
+      setFormData(prev => ({ ...prev, teachers: [] }))
+    } else {
+      setFormData(prev => ({ 
+        ...prev, 
+        teachers: filteredTeachers.map(t => t.id.toString())
+      }))
+    }
   }
 
   const handleNewDisciplineChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -137,13 +170,19 @@ export default function RegistrarTurma() {
         teachers: []
       })
       setShowNewDiscipline(false)
+      setDepartmentFilter("todos")
+      setTeacherSearch("")
       setIsLoading(false)
     }, 1000)
   }
 
   // Mock de autenticação
   const isAuthenticated = true
-  const hasCourseLinked = false // Se o usuário tem curso vinculado
+  const hasCourseLinked = false
+
+  // Contagem de professores selecionados
+  const selectedCount = formData.teachers.length
+  const allSelected = selectedCount === filteredTeachers.length && filteredTeachers.length > 0
 
   return (
     <main className="min-h-screen bg-gray-50 font-sans text-text-primary">
@@ -383,33 +422,101 @@ export default function RegistrarTurma() {
               </div>
             </div>
 
-            {/* Docentes */}
+            {/* Docentes - Seção com filtros */}
             <div className="mb-6">
-              <label className="block text-xs font-semibold uppercase tracking-wide text-text-secondary mb-2">
-                Docentes <span className="text-danger">*</span>
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {MOCK_TEACHERS.map((teacher) => (
-                  <label
-                    key={teacher.id}
-                    className={`flex items-center gap-2 p-2 border rounded-md cursor-pointer transition-colors ${
-                      formData.teachers.includes(teacher.id.toString())
-                        ? 'border-saloc bg-saloc/5'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
+              <div className="flex items-center justify-between mb-3">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                  Docentes <span className="text-danger">*</span>
+                </label>
+                {filteredTeachers.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleSelectAllTeachers}
+                    className="text-xs text-saloc hover:text-saloc-light transition-colors"
                   >
-                    <input
-                      type="checkbox"
-                      value={teacher.id}
-                      checked={formData.teachers.includes(teacher.id.toString())}
-                      onChange={() => handleTeacherToggle(teacher.id.toString())}
-                      className="w-4 h-4 text-saloc focus:ring-focus rounded border-gray-300"
-                    />
-                    <User className="h-3 w-3 text-text-secondary" />
-                    <span className="text-sm">{teacher.name}</span>
-                  </label>
-                ))}
+                    {allSelected ? 'Desmarcar todos' : 'Selecionar todos'}
+                  </button>
+                )}
               </div>
+
+              {/* Filtros de professores */}
+              <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary/50" />
+                    <input
+                      type="text"
+                      placeholder="Buscar professor..."
+                      value={teacherSearch}
+                      onChange={(e) => setTeacherSearch(e.target.value)}
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-focus"
+                    />
+                  </div>
+                </div>
+                <div className="sm:w-64">
+                  <div className="relative">
+                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary/50" />
+                    <select
+                      value={departmentFilter}
+                      onChange={(e) => setDepartmentFilter(e.target.value)}
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-focus"
+                    >
+                      <option value="todos">Todos os departamentos</option>
+                      {MOCK_DEPARTMENTS.map((dept) => (
+                        <option key={dept.id} value={dept.id}>{dept.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lista de professores */}
+              {filteredTeachers.length === 0 ? (
+                <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                  <User className="h-8 w-8 text-text-secondary/30 mx-auto mb-2" />
+                  <p className="text-sm text-text-secondary">Nenhum professor encontrado</p>
+                  <p className="text-xs text-text-secondary">Tente ajustar os filtros</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-1">
+                  {filteredTeachers.map((teacher) => (
+                    <label
+                      key={teacher.id}
+                      className={`flex items-center gap-2 p-2 border rounded-md cursor-pointer transition-colors ${
+                        formData.teachers.includes(teacher.id.toString())
+                          ? 'border-saloc bg-saloc/5'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        value={teacher.id}
+                        checked={formData.teachers.includes(teacher.id.toString())}
+                        onChange={() => handleTeacherToggle(teacher.id.toString())}
+                        className="w-4 h-4 text-saloc focus:ring-focus rounded border-gray-300"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-1">
+                          <User className="h-3 w-3 text-text-secondary" />
+                          <span className="text-sm">{teacher.name}</span>
+                        </div>
+                        <div className="text-xs text-text-secondary/70 mt-0.5">
+                          {teacher.department}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {/* Indicador de seleção */}
+              {selectedCount > 0 && (
+                <div className="mt-3 text-right">
+                  <Badge variant="info">
+                    {selectedCount} professor(es) selecionado(s)
+                  </Badge>
+                </div>
+              )}
             </div>
 
             {/* Botões */}
@@ -439,6 +546,8 @@ export default function RegistrarTurma() {
                     teachers: []
                   })
                   setShowNewDiscipline(false)
+                  setDepartmentFilter("todos")
+                  setTeacherSearch("")
                 }}
                 className="px-6 py-2.5 border border-gray-300 text-text-secondary rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
               >
@@ -450,12 +559,11 @@ export default function RegistrarTurma() {
 
         {/* Dicas */}
         <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <h3 className="text-sm font-semibold text-saloc mb-2">Formato do Horário</h3>
+          <h3 className="text-sm font-semibold text-saloc mb-2">📌 Informações importantes</h3>
           <div className="text-xs text-text-secondary space-y-1">
-            <p><span className="font-semibold">Dias:</span> 2=Segunda, 3=Terça, 4=Quarta, 5=Quinta, 6=Sexta, 7=Sábado</p>
-            <p><span className="font-semibold">Turnos:</span> M=Manhã, T=Tarde, N=Noite</p>
-            <p><span className="font-semibold">Slots:</span> 1 a 6 (cada slot = 50 minutos)</p>
-            <p className="mt-1 text-saloc">Exemplos: 24M12 = Segunda e Quarta, Manhã, 1º e 2º horários</p>
+            <p><span className="font-semibold">Formato do Horário:</span> Dias (2-7) + Turno (M/T/N) + Slots (1-6)</p>
+            <p><span className="font-semibold">Exemplo:</span> 24M12 = Segunda e Quarta, Manhã, 1º e 2º horários</p>
+            <p><span className="font-semibold">Professores:</span> Você pode filtrar por departamento para encontrar mais rápido</p>
           </div>
         </div>
       </div>
