@@ -147,8 +147,22 @@ const MOCK_TURMAS_SETOR = {
   ],
 };
 
+type Turma = {
+  id: string;
+  periodo: string;
+  codigo: string;
+  disciplina: string;
+  departamento: string;
+  numero: number;
+  horario: string;
+  alunos: number;
+  docente: string;
+  local: string | null;
+  subturmas?: string[];
+};
+
 // Lista completa de turmas (para usuários com curso vinculado)
-const ALL_TURMAS = [
+const ALL_TURMAS: Turma[] = [
   {
     id: "1",
     periodo: "2025.1",
@@ -379,6 +393,10 @@ export default function HomePage() {
   const [disciplina, setDisciplina] = useState("");
   const [disciplinasDisponiveis, setDisciplinasDisponiveis] = useState<{ id: string; label: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  const [turmaSelecionada, setTurmaSelecionada] = useState<Turma | null>(null);
+  const [modalSubturmaAberto, setModalSubturmaAberto] = useState(false);
+  const [inputSubturma, setInputSubturma] = useState("");
   
   // Estado das turmas filtradas (para usuários com curso vinculado)
   const [turmasFiltradas, setTurmasFiltradas] = useState(ALL_TURMAS);
@@ -459,6 +477,28 @@ export default function HomePage() {
     alert(`Aceitar solicitações para turmas: ${ids.join(", ")}`);
   };
 
+  const handleAdicionarSubturma = () => {
+  if (!turmaSelecionada || inputSubturma.trim() === "") return;
+
+  setTurmasFiltradas((prev) =>
+    prev.map((turma) => {
+      if (turma.id !== turmaSelecionada.id) return turma;
+
+      return {
+        ...turma,
+        subturmas: [
+          ...(turma.subturmas ?? []),
+          inputSubturma.trim(),
+        ],
+      };
+    })
+  );
+
+  setInputSubturma("");
+  setModalSubturmaAberto(false);
+  setTurmaSelecionada(null);
+};
+
   // Separar turmas com e sem sala (para modo com curso vinculado)
   const turmasComSala = turmasFiltradas.filter(t => t.local);
   const turmasSemSala = turmasFiltradas.filter(t => !t.local);
@@ -500,7 +540,7 @@ export default function HomePage() {
               className="inline-flex items-center gap-1.5 px-2.5 py-2 text-sm font-medium rounded-md text-saloc hover:bg-saloc/10 focus:outline-none focus:ring-2 focus:ring-focus"
             >
               <Eye className="h-4 w-4" />
-              <span className="hidden sm:inline">Verificar salas</span>
+              <span className="hidden sm:inline">Gerenciar salas</span>
             </Link>
             {isAuthenticated && (
               <Link
@@ -751,7 +791,7 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* Turmas com sala */}
+            {/* --- Turmas com sala (Seu bloco com as modificações inseridas) --- */}
             <div>
               <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
                 <div className="flex items-center gap-2">
@@ -780,6 +820,7 @@ export default function HomePage() {
                           <th className="hidden md:table-cell p-3 text-center text-xs font-semibold uppercase">Alunos</th>
                           <th className="hidden lg:table-cell p-3 text-left text-xs font-semibold uppercase">Docente</th>
                           <th className="p-3 text-left text-xs font-semibold uppercase">Local</th>
+                          <th className="p-3 text-center text-xs font-semibold uppercase">Ações</th> {/* ADICIONADO */}
                         </tr>
                       </thead>
                       <tbody>
@@ -787,7 +828,15 @@ export default function HomePage() {
                           <tr key={turma.id} className="border-b border-gray-200 hover:bg-gray-50">
                             <td className="p-3">{turma.periodo}</td>
                             <td className="p-3 font-mono text-xs">{turma.codigo}</td>
-                            <td className="p-3">{turma.disciplina}</td>
+                            <td className="p-3">
+                              <div className="font-medium">{turma.disciplina}</div>
+                              {/* ADICIONADO: Lista as subturmas/currículos mesclados logo abaixo */}
+                              {turma.subturmas && turma.subturmas.map((sub: string, index: number) => (
+                                <div key={index} className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded mt-1 mr-1 border border-gray-200 font-mono">
+                                  ↳ {sub}
+                                </div>
+                              ))}
+                            </td>
                             <td className="hidden md:table-cell p-3 text-text-secondary">{turma.departamento}</td>
                             <td className="p-3 text-center">{turma.numero}</td>
                             <td className="p-3 font-mono text-xs">{turma.horario}</td>
@@ -795,6 +844,17 @@ export default function HomePage() {
                             <td className="hidden lg:table-cell p-3 text-text-secondary">{turma.docente}</td>
                             <td className="p-3">
                               <Badge variant="success">{turma.local}</Badge>
+                            </td>
+                            {/* ADICIONADO: Botão de ação para abrir a pagina de subturma */}
+                            <td className="p-3 text-center">
+                              <Link
+                                  href={`/registrar-subturma?id=${turma.id}`}
+                                  className="bg-saloc/10 text-saloc hover:bg-saloc hover:text-white border border-saloc/20 text-xs px-3 py-1.5 rounded font-medium transition-colors"
+                              >
+
+                                  + Subturma
+
+                              </Link>
                             </td>
                           </tr>
                         ))}
@@ -804,6 +864,43 @@ export default function HomePage() {
                 </div>
               )}
             </div>
+
+            {/* --- MODAL DE ADICIONAR SUBTURMA --- */}
+            {/* Adicione este bloco no final do arquivo, logo antes do último fechamento de tag </div> do componente principal */}
+            {modalSubturmaAberto && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-fade-in">
+                <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-xl border border-gray-100">
+                  <h3 className="font-bold text-lg text-text-primary mb-1">Vincular Subturma</h3>
+                  <p className="text-xs text-text-secondary mb-4">
+                    Adicione uma subturma ou mescle outro currículo à disciplina <strong>{turmaSelecionada?.disciplina}</strong>.
+                  </p>
+                  
+                  <input 
+                    type="text"
+                    placeholder="Ex: Subturma B1 / Matriz Antiga"
+                    value={inputSubturma}
+                    onChange={(e) => setInputSubturma(e.target.value)}
+                    className="w-full border border-gray-300 p-2.5 rounded-lg text-sm mb-5 focus:outline-none focus:ring-2 focus:ring-saloc/50 focus:border-saloc"
+                    autoFocus
+                  />
+                  
+                  <div className="flex justify-end gap-2 text-xs font-semibold">
+                    <button 
+                      onClick={() => { setModalSubturmaAberto(false); setInputSubturma(''); }} 
+                      className="px-4 py-2 border border-gray-200 rounded-lg text-text-secondary hover:bg-gray-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      onClick={handleAdicionarSubturma} 
+                      className="px-4 py-2 bg-saloc text-white rounded-lg hover:bg-saloc/90 transition-colors"
+                    >
+                      Confirmar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -109,3 +109,19 @@ export const MOCK_TURMAS = [
     status: "alocada",
   },
 ]
+
+// Mock de histórico de alocações por sala
+const MOCK_HISTORICO_SALAS: Record<string, Array<{ periodo: string; disciplina: string; codigo: string; docente: string; horario: string }>> = {
+  "Sala 101": [
+    { periodo: "2025.1", disciplina: "Algoritmos", codigo: "CC0001", docente: "Prof. João Silva", horario: "2M34" },
+    { periodo: "2024.2", disciplina: "Estrutura de Dados", codigo: "CC0005", docente: "Prof. Carlos Lima", horario: "2M34" },
+    { periodo: "2024.1", disciplina: "Introdução à Computação", codigo: "CC0002", docente: "Prof.ª Patricia Oliveira", horario: "4T12" },
+  ],
+  "Lab 02": [
+    { periodo: "2025.1", disciplina: "Programação Orientada a Objetos", codigo: "CC0050", docente: "Prof. Carlos Lima", horario: "4M12" },
+    { periodo: "2024.2", disciplina: "Sistemas Operacionais", codigo: "CC0042", docente: "Prof. Roberto Santos", horario: "3N12" },
+  ],
+  "Sala 102": [
+    { periodo: "2024.2", disciplina: "Banco de Dados", codigo: "CC0033", docente: "Prof. João Silva", horario: "5M12" },
+  ]
+};

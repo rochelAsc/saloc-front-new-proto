@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react'
 import { 
   DoorOpen, Building2, Users, Layers, MapPin, 
-  Trash2, Plus, Search, X, AlertCircle 
+  Trash2, Plus, Search, X, AlertCircle, History, Clock, User
 } from 'lucide-react'
 
-// Mock data
+// Mock data das salas existentes
 const MOCK_ROOMS = [
   { id: 1, number: "101", building: "CCET", block: "A", capacity: 50, floor: "Térreo", sector: "Coordenação CC" },
   { id: 2, number: "102", building: "CCET", block: "A", capacity: 40, floor: "Térreo", sector: "Coordenação CC" },
@@ -15,6 +15,22 @@ const MOCK_ROOMS = [
   { id: 5, number: "Lab 01", building: "CCET", block: "B", capacity: 30, floor: "1º Andar", sector: "Coordenação CC" },
   { id: 6, number: "Lab 02", building: "CCET", block: "B", capacity: 30, floor: "1º Andar", sector: "Coordenação CC" },
 ]
+
+// Mock de histórico de alocações por número de sala
+const MOCK_HISTORICO_SALAS: Record<string, Array<{ periodo: string; disciplina: string; codigo: string; docente: string; horario: string }>> = {
+  "101": [
+    { periodo: "2025.1", disciplina: "Algoritmos", codigo: "CC0001", docente: "Prof. João Silva", horario: "2M34" },
+    { periodo: "2024.2", disciplina: "Estrutura de Dados", codigo: "CC0005", docente: "Prof. Carlos Lima", horario: "2M34" },
+    { periodo: "2024.1", disciplina: "Introdução à Computação", codigo: "CC0002", docente: "Prof.ª Patricia Oliveira", horario: "4T12" },
+  ],
+  "Lab 02": [
+    { periodo: "2025.1", disciplina: "Programação Orientada a Objetos", codigo: "CC0050", docente: "Prof. Carlos Lima", horario: "4M12" },
+    { periodo: "2024.2", disciplina: "Sistemas Operacionais", codigo: "CC0042", docente: "Prof. Roberto Santos", horario: "3N12" },
+  ],
+  "102": [
+    { periodo: "2024.2", disciplina: "Banco de Dados", codigo: "CC0033", docente: "Prof. João Silva", horario: "5M12" },
+  ]
+}
 
 function Badge({ children, variant = "default" }: { children: React.ReactNode; variant?: "default" | "success" | "warning" | "danger" | "info" }) {
   const variants = {
@@ -40,6 +56,10 @@ export default function VerificarSalas() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [roomToDelete, setRoomToDelete] = useState<any>(null)
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+
+  // Estados para controlar o Painel do Histórico
+  const [salaSelecionada, setSalaSelecionada] = useState<string | null>(null)
+  const [modalHistoricoAberto, setModalHistoricoAberto] = useState(false)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -144,12 +164,10 @@ export default function VerificarSalas() {
     })
   }
 
-  // Mock de autenticação
-  const isAuthenticated = true
-  const isAdmin = true
+  const historicoAtual = salaSelecionada ? MOCK_HISTORICO_SALAS[salaSelecionada] || [] : []
 
   return (
-    <main className="min-h-screen bg-gray-50 font-sans text-text-primary">
+    <main className="min-h-screen bg-gray-50 font-sans text-text-primary relative overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
         
         {/* Título */}
@@ -336,7 +354,7 @@ export default function VerificarSalas() {
           </div>
         )}
 
-        {/* Lista de Salas */}
+        {/* Lista de Salas (Mantido o formato original de tabela) */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -365,7 +383,20 @@ export default function VerificarSalas() {
                     <td className="p-3 hidden md:table-cell text-text-secondary">{room.floor}</td>
                     <td className="p-3 hidden lg:table-cell text-text-secondary text-xs">{room.sector}</td>
                     <td className="p-3 text-center">
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex items-center justify-center gap-1">
+                        
+                        {/* NOVO BOTÃO DE HISTÓRICO ADICIONADO NA LISTA */}
+                        <button
+                          onClick={() => {
+                            setSalaSelecionada(room.number)
+                            setModalHistoricoAberto(true)
+                          }}
+                          className="p-1.5 text-text-secondary hover:bg-gray-100 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-focus"
+                          title="Ver Histórico de Alocações"
+                        >
+                          <History className="h-4 w-4" />
+                        </button>
+
                         <button
                           onClick={() => handleEdit(room)}
                           className="p-1.5 text-saloc hover:bg-saloc/10 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-focus"
@@ -398,6 +429,88 @@ export default function VerificarSalas() {
           </p>
         </div>
       </div>
+
+      {/* ========================================================= */}
+      {/* DRAWER / GAVETA SIDEBAR DO HISTÓRICO DE ALOCAÇÕES         */}
+      {/* ========================================================= */}
+      {modalHistoricoAberto && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-end z-50 transition-opacity">
+          <div className="bg-white h-full w-full max-w-md shadow-2xl p-6 flex flex-col justify-between transform transition-transform animate-in slide-in-from-right duration-300">
+            
+            <div>
+              <div className="flex items-center justify-between border-b pb-4 mb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-saloc flex items-center gap-2">
+                    <History size={20} />
+                    Histórico da Sala {salaSelecionada}
+                  </h2>
+                  <p className="text-xs text-text-secondary mt-0.5">Ocupações anteriores e atuais deste espaço</p>
+                </div>
+                <button 
+                  onClick={() => setModalHistoricoAberto(false)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Linha do tempo (Timeline) */}
+              <div className="space-y-4 overflow-y-auto max-h-[75vh] pr-1">
+                {historicoAtual.length === 0 ? (
+                  <div className="text-center py-12 border border-dashed border-gray-200 rounded-xl">
+                    <p className="text-sm text-gray-400">Nenhum registro de alocação encontrado para esta sala.</p>
+                  </div>
+                ) : (
+                  historicoAtual.map((item, index) => (
+                    <div key={index} className="relative pl-6 border-l-2 border-gray-200 last:border-transparent pb-2">
+                      {/* Marcador visual circular da timeline */}
+                      <div className="absolute -left-[7px] top-1 w-3 h-3 rounded-full bg-saloc border-2 border-white shadow-sm" />
+                      
+                      {/* Bloco de conteúdo */}
+                      <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold bg-saloc/10 text-saloc px-2 py-0.5 rounded">
+                            {item.periodo}
+                          </span>
+                          <span className="text-xs font-mono text-gray-400">
+                            {item.codigo}
+                          </span>
+                        </div>
+                        
+                        <h4 className="font-semibold text-sm text-text-primary mb-2">
+                          {item.disciplina}
+                        </h4>
+
+                        <div className="space-y-1 text-xs text-text-secondary">
+                          <div className="flex items-center gap-1.5">
+                            <User size={12} className="text-gray-400" />
+                            <span>{item.docente}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Clock size={12} className="text-gray-400" />
+                            <span className="font-mono text-[11px]">{item.horario}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Rodapé da Gaveta */}
+            <div className="border-t pt-4 mt-4">
+              <button
+                onClick={() => setModalHistoricoAberto(false)}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-text-secondary text-sm font-medium py-2.5 px-4 rounded-md transition-colors"
+              >
+                Fechar Painel
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* Modal de confirmação de exclusão */}
       {showDeleteModal && (

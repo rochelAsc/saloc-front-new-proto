@@ -41,12 +41,12 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <a href="/home" className="hover:text-white transition-colors">
+                <a href="/" className="hover:text-white transition-colors">
                   Página Inicial
                 </a>
               </li>
               <li>
-                <a href="/mapa-salas" className="hover:text-white transition-colors">
+                <a href="/mapa-de-salas" className="hover:text-white transition-colors">
                   Mapa de Salas
                 </a>
               </li>

@@ -88,7 +88,7 @@ export function Header() {
               <ArrowLeft className="h-5 w-5" />
             </button>
             <Link
-              href="/home"
+              href="/"
               className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
               aria-label="Página inicial"
               title="Página inicial"
